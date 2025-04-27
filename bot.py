@@ -5,11 +5,8 @@ import asyncio
 from datetime import datetime, timedelta
 import aiohttp
 
-# Configuración general
 CHECK_TIMEFRAME = 15
 MESSAGE_THRESHOLD = 3
-
-# Datos por servidor
 server_settings = {}
 
 intents = discord.Intents.default()
@@ -31,7 +28,6 @@ async def on_ready():
     except Exception as e:
         print(f"Error al sincronizar comandos: {e}")
 
-# /iniciar solo para administradores
 @bot.tree.command(name="iniciar", description="Activa el sistema AntiBoomer en el servidor.")
 async def iniciar(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
@@ -43,8 +39,6 @@ async def iniciar(interaction: discord.Interaction):
         "webhook_url": None
     }
     await interaction.response.send_message("✅ AntiBoomer ACTIVADO para este servidor.", ephemeral=True)
-
-# /avisos para configurar el webhook, solo admins
 @bot.tree.command(name="avisos", description="Configura el webhook para recibir notificaciones de baneos.")
 @app_commands.describe(url="URL del webhook de Discord")
 async def avisos(interaction: discord.Interaction, url: str):
@@ -67,7 +61,7 @@ async def on_message(message):
     guild_id = message.guild.id
 
     if guild_id not in server_settings or not server_settings[guild_id]["antiboom_active"]:
-        return  # AntiBoomer no está activado en este server
+        return 
 
     now = datetime.utcnow()
     user_id = message.author.id
@@ -81,13 +75,10 @@ async def on_message(message):
         "timestamp": now,
     })
 
-    # Limpiamos mensajes viejos
     user_message_logs[user_id] = [
         m for m in user_message_logs[user_id]
         if (now - m["timestamp"]).total_seconds() <= CHECK_TIMEFRAME
     ]
-
-    # Chequeos de spam
     unique_channels = set(m["channel"] for m in user_message_logs[user_id] if m["content"] == message.content)
     if len(unique_channels) >= MESSAGE_THRESHOLD:
         await punish_user(message.author, message.guild, reason="Spam del mismo mensaje en diferentes canales.")
